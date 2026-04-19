@@ -1,4 +1,4 @@
-"""Solem BLE API helper."""
+"""Solem BLE API helper.
 
 This is a lightweight subset of the Solem API used by the scheduling integration.
 It focuses on robust BLE connection handling and command writes for manual actions.
