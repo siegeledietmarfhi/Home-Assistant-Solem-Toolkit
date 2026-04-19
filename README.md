@@ -3,9 +3,20 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 [![GitHub release](https://img.shields.io/github/release/siegeledietmarfhi/Home-Assistant-Solem-Toolkit.svg)](https://github.com/siegeledietmarfhi/Home-Assistant-Solem-Toolkit/releases/)
 
-Integrate Solem Watering Bluetooth Controllers (only tested in BL-IP) into your Home Assistant. This Integration is meant to only provide services for Home Assistant to control irrigation using your BL-IP controller. 
+Integrate Solem Watering Bluetooth Controllers (only tested in BL-IP) into Home Assistant.
 
-This fork restores the verified BL-IP BLE opcodes, converts manual durations from minutes to seconds, and enables the required notification handshake before command writes.
+This repository is a public maintained fork of [hcraveiro/Home-Assistant-Solem-Toolkit](https://github.com/hcraveiro/Home-Assistant-Solem-Toolkit).
+
+It exists because newer BL-IP firmware rejects the manual watering commands used by the upstream integration. This fork restores the verified BL-IP BLE protocol behavior:
+* correct BLE opcodes for manual station/program control
+* conversion from service-level minutes to protocol-level seconds
+* notification handshake before command writes
+
+If you want to install this fork in HACS, use this repository URL:
+
+```text
+https://github.com/siegeledietmarfhi/Home-Assistant-Solem-Toolkit
+```
 
 - [Home Assistant Solem Toolkit Integration](#home-assistant-solem-toolkit-integration)
     - [Installation](#installation)
