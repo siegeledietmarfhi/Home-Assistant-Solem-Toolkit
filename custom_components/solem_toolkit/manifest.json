@@ -1,10 +1,10 @@
 {
   "domain": "solem_toolkit",
   "name": "Solem Toolkit",
-  "version": "1.0.0",
-  "documentation": "https://github.com/hcraveiro/Home-Assistant-Solem-Toolkit",
+  "version": "1.0.3",
+  "documentation": "https://github.com/siegeledietmarfhi/Home-Assistant-Solem-Toolkit",
   "dependencies": [],
-  "codeowners": ["@hcraveiro"],
+  "codeowners": ["@siegeledietmarfhi"],
   "requirements": [
         "dbus_fast>=2.33.0",
         "bleak>=0.22.3"
