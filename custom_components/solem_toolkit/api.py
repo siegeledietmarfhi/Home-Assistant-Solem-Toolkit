@@ -21,6 +21,7 @@ from bleak_retry_connector import (
 )
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from homeassistant.components.bluetooth import async_ble_device_from_address
 from homeassistant.core import HomeAssistant
 
 from .const import (
@@ -53,6 +54,7 @@ class SolemAPI:
         self.notify_characteristic_uuid: str = NOTIFY_CHARACTERISTIC_UUID
         self._conn_lock = asyncio.Lock()
         self._last_notification: Optional[bytes] = None
+        self._notification_event: Optional[asyncio.Event] = None
 
     async def scan_bluetooth(self) -> list[BLEDevice]:
         """Return a list of discovered BLE devices."""
@@ -60,12 +62,19 @@ class SolemAPI:
 
     async def _resolve_ble_device(self) -> BLEDevice:
         """Resolve a BLEDevice for the configured MAC address."""
-        ble_device: Optional[BLEDevice] = await BleakScanner.find_device_by_address(
+<<<<<<< HEAD
+        ble_device = async_ble_device_from_address(self.hass, self.mac_address, connectable=True)
+        if ble_device is not None:
+            return ble_device
+
+        # First attempt: direct lookup by address (fast-path on most platforms)
+        ble_device = await BleakScanner.find_device_by_address(
             self.mac_address, timeout=5.0
         )
         if ble_device is not None:
             return ble_device
 
+        # Fallback: full scan and manual match (some platforms/proxies behave like this)
         devices = await BleakScanner.discover(timeout=5.0)
         for d in devices:
             if (d.address or "").lower() == self.mac_address.lower():
@@ -140,6 +149,22 @@ class SolemAPI:
         """Capture controller notifications for debugging."""
         self._last_notification = bytes(data)
         _LOGGER.debug("Solem notification: %s", self._last_notification.hex())
+        if self._notification_event is not None:
+            self._notification_event.set()
+
+    def _arm_notification_waiter(self) -> asyncio.Event:
+        """Prepare a one-shot waiter for the next controller notification."""
+        self._notification_event = asyncio.Event()
+        return self._notification_event
+
+    async def _wait_for_notification(self, waiter: asyncio.Event, timeout: float, phase: str) -> bool:
+        """Wait briefly for a controller notification and log when it never arrives."""
+        try:
+            await asyncio.wait_for(waiter.wait(), timeout=timeout)
+        except TimeoutError:
+            _LOGGER.debug("No Solem notification received during %s within %.1fs", phase, timeout)
+            return False
+        return True
 
     async def _write_and_commit(self, command: bytes) -> None:
         """Write a command then commit it (Solem protocol)."""
@@ -148,15 +173,27 @@ class SolemAPI:
             if not client.is_connected:
                 raise APIConnectionError("Failed connecting!")
             self._last_notification = None
+            # Solem requires the notify CCCD handshake before accepting writes.
+            initial_notify = self._arm_notification_waiter()
             await client.start_notify(self.notify_characteristic_uuid, self._handle_notification)
-            await asyncio.sleep(0.2)
+            loop = asyncio.get_running_loop()
+            start_time = loop.time()
+            await self._wait_for_notification(initial_notify, 2.0, "initial state sync")
+            remaining = 2.0 - (loop.time() - start_time)
+            if remaining > 0:
+                await asyncio.sleep(remaining)
             _LOGGER.debug("Writing Solem command: %s", command.hex())
+            command_notify = self._arm_notification_waiter()
             await self._write_with_auth_retry(client, command)
-            await asyncio.sleep(0.1)
+            await self._wait_for_notification(command_notify, 1.0, "command write")
+            # Commit frame
             commit = struct.pack(">BB", 0x3B, 0x00)
+            commit_notify = self._arm_notification_waiter()
             await self._write_with_auth_retry(client, commit)
+            await self._wait_for_notification(commit_notify, 1.0, "commit")
             await asyncio.sleep(0.2)
         finally:
+            self._notification_event = None
             if client.is_connected:
                 with contextlib.suppress(Exception):
                     await client.stop_notify(self.notify_characteristic_uuid)
