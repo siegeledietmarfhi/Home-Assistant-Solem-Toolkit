@@ -2,6 +2,12 @@
 
 All notable changes to this repository will be documented in this file.
 
+## [1.0.5] - 2026-04-21
+
+### Fixed
+
+- Removed an accidental merge marker left in `custom_components/solem_toolkit/api.py` that caused the integration to fail during import with a `SyntaxError`.
+
 ## [1.0.4] - 2026-04-21
 
 ### Fixed

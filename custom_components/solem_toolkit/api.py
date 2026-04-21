@@ -62,7 +62,6 @@ class SolemAPI:
 
     async def _resolve_ble_device(self) -> BLEDevice:
         """Resolve a BLEDevice for the configured MAC address."""
-<<<<<<< HEAD
         ble_device = async_ble_device_from_address(self.hass, self.mac_address, connectable=True)
         if ble_device is not None:
             return ble_device
